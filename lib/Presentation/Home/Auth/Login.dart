@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wealthlet/Presentation/Home/Auth/SignUp.dart';
 import 'package:wealthlet/Presentation/Home/HomeScreen.dart';
+import 'package:wealthlet/utils/Colorfields.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,44 +16,69 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return  Scaffold(
+      // appBar: AppBar(
+      //   toolbarHeight: 80,
+      //   backgroundColor: Colors.transparent,
+      //   leading: Padding(
+      //     padding: const EdgeInsets.only(top: 30, left: 12),
+      //     child: Icon(
+      //       Icons.account_balance_wallet,
+      //       size: 50.0,
+      //       color: Colors.brown[900],
+      //     ),
+      //   ),
+      //   actions: [
+      //     Padding(
+      //       padding: const EdgeInsets.only(right: 20.0, top: 30),
+      //       child: Icon(Icons.info_outline, size: 30),
+      //     )
+      //   ],
+      // ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 60.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            //mainAxisAlignment: MainAxisAlignment.center,
+           // crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Logo placeholder
-              Container(
-                margin: EdgeInsets.only(bottom: 40.0),
-                child: Icon(
-                  Icons.account_balance_wallet,
-                  size: 40.0,
-                  color: Colors.brown[900],
-                ),
-              ),
-              // Title text
-              Text(
-                'Login',
+                 Column(
+                  children: [
+                        Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                   child: Image.asset('assets/images/WealthLet.png', width: 250,),
+                 ),
+                 Padding(
+                   padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+                   child: Divider(color:Colors.black12, thickness: 1,),
+                 ),
+                 SizedBox(height: 40,),
+                    Text(
+                "LOGIN",
+                textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 32.0,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Colors.grey[600],
                 ),
               ),
-              SizedBox(height: 8.0),
-              // Subtitle text
-              Text(
+                  ],
+                 ),
+              // Title text
+              
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                Text(
                 "Let's fill up this form and fill it correctly",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                  fontSize: 16.0,
+                  fontSize: 14.0,
                   fontWeight: FontWeight.normal,
                   color: Colors.grey[600],
                 ),
               ),
-              SizedBox(height: 32.0),
+              SizedBox(height: 50.0),
               // Username TextField
               TextField(
                 decoration: InputDecoration(
@@ -121,6 +147,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
+              ],),
+              SizedBox(height: 40.0),
+              // Subtitle text
+              
               SizedBox(height: 16.0),
               // Sign Up Link
               Row(

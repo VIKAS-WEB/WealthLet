@@ -155,7 +155,7 @@ class _DashboardState extends State<Dashboard> {
                                             color: Colors.white,
                                             fontSize: 16,
                                           ),
-                                        ),
+                                        )
                                       ],
                                     ),
                                     Image.network(
@@ -302,7 +302,7 @@ class _DashboardState extends State<Dashboard> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
+          Container(
           width: 60,
           height: 60,
           decoration: BoxDecoration(
