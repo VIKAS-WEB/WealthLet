@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1019291858708",
+    "project_id": "wealthlet",
+    "storage_bucket": "wealthlet.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1019291858708:android:5f9237524ea274b04af401",
+        "android_client_info": {
+          "package_name": "com.app.wealthlet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDgxFO5bmWEfMyAKhSeVO1QfE-Exu6CTwo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

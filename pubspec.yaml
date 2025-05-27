@@ -29,10 +29,21 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   carousel_slider: ^5.0.0
+  cloud_firestore: ^5.6.8
   cupertino_icons: ^1.0.8
+  firebase_app_check: ^0.3.2+6
+  firebase_auth: ^5.5.3
+  firebase_core: ^3.13.0
+  firebase_database: ^11.3.6
+  firebase_messaging: ^15.2.5
+  firebase_remote_config: ^5.4.3
+  firebase_storage: ^12.4.5
   flutter:
     sdk: flutter
+  flutter_image_compress: ^2.4.0
   google_fonts: ^6.2.1
+  image_picker: ^1.1.2
+  permission_handler: ^12.0.0+1
 
 dev_dependencies:
   flutter_lints: ^5.0.0
