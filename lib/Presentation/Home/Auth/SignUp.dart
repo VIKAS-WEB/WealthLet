@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wealthlet/Presentation/Home/Auth/Login.dart';
 import 'package:wealthlet/Presentation/Home/HomeScreen.dart';
 
@@ -25,6 +27,39 @@ class _SignUpState extends State<SignUp> {
   String? _errorMessage;
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    // Handle foreground notifications
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+
+      if (notification != null && android != null) {
+        FlutterLocalNotificationsPlugin().show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'wealthlet_channel',
+              'Wealthlet Notifications',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+          ),
+        );
+      }
+    });
+
+    // Handle notification click
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (message.data['screen'] == 'dashboard') {
+        Navigator.pushNamed(context, '/home');
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -62,6 +97,7 @@ class _SignUpState extends State<SignUp> {
           'createdAt': FieldValue.serverTimestamp(),
           'ProfilePic': '',
           'emailVerified': false,
+          'fcmToken': await FirebaseMessaging.instance.getToken(),
         });
 
         // Show verification message
@@ -80,7 +116,7 @@ class _SignUpState extends State<SignUp> {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            CupertinoPageRoute(builder: (context) =>  HomeScreen()),
+            CupertinoPageRoute(builder: (context) => HomeScreen()),
           );
         }
       } on FirebaseAuthException catch (e) {
@@ -88,7 +124,7 @@ class _SignUpState extends State<SignUp> {
           _errorMessage = _getErrorMessage(e.code);
         });
       } catch (e) {
-        print("Firestore error: $e");
+        print("Error: $e");
         setState(() {
           _errorMessage = 'An unexpected error occurred. Please try again.';
         });

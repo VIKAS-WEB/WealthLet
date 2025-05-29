@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class ColorsField {
   static const Color cardGradientStart = Color(0xFF1E3A8A); // Dark blue (card top)
+  static const Color blackColor = Color.fromARGB(255, 0, 0, 0); // Dark blue (card top)
   static const Color cardGradientEnd = Color(0xFF60A5FA); // Light blue (card bottom)
   static const Color buttonRed = Color(0xFFD1493B); // Red button (bottom navigation)
   static const Color backgroundLight = Color(0xFFF5F5F5); // Light grey background
