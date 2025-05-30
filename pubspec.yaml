@@ -32,6 +32,7 @@ dependencies:
   carousel_slider: ^5.0.0
   cloud_firestore: ^5.6.8
   cupertino_icons: ^1.0.8
+  equatable: ^2.0.7
   firebase_app_check: ^0.3.2+6
   firebase_auth: ^5.5.3
   firebase_core: ^3.13.0
@@ -41,6 +42,7 @@ dependencies:
   firebase_storage: ^12.4.5
   flutter:
     sdk: flutter
+  flutter_bloc: ^9.1.1
   flutter_image_compress: ^2.4.0
   flutter_local_notifications: ^19.2.1
   flutter_spinkit: ^5.2.1
@@ -49,11 +51,18 @@ dependencies:
   lottie: ^3.3.1
   mobile_scanner: ^7.0.0
   permission_handler: ^12.0.0+1
+  shimmer: ^3.0.0
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.3
   flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/AppIconLogo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

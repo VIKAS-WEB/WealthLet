@@ -1,10 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:wealthlet/Presentation/Home/HomeScreen.dart';
-import 'package:wealthlet/Presentation/WelcomeScreen.dart';
-import 'package:wealthlet/utils/MessagingServices.dart';
-
+import 'package:wealthlet/features/Auth/Presentation/Screens/Login.dart';
+import 'package:wealthlet/features/Home/Presentation/Screens/HomeScreen.dart';
+import 'package:wealthlet/features/Home/Presentation/Screens/WelcomeScreen.dart';
+import 'package:wealthlet/core/services/MessagingServices.dart';
+import 'package:wealthlet/features/Profile/Bloc/profile_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,8 +14,15 @@ void main() async {
   // Initialize MessagingService
   final messagingService = MessagingService();
   await messagingService.init();
-  
-  runApp(MyApp());
+
+  runApp(
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<ProfileBloc>(create: (context) => ProfileBloc()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -21,10 +30,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(),
-      ),
-      home: WelcomeScreen(),                                                          
+      theme: ThemeData(textTheme: GoogleFonts.poppinsTextTheme()),
+      home: LoginScreen(),
     );
   }
 }
