@@ -8,7 +8,7 @@ WealthLet is a powerful and intuitive personal finance management platform desig
 
 ## 📸 Screenshots
 
-<div style="display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 20px;">
+<div style="display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 40px;">
   <img src="ScreenShots/DashboardMain.png" width="120" alt="Dashboard Overview" />
   <img src="ScreenShots/Opitions.png" width="120" alt="Crypto Trading" />
   <img src="ScreenShots/ElectricBoard.png" width="120" alt="Money Transfer" />
