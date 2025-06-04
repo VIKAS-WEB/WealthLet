@@ -1,16 +1,64 @@
-# wealthlet
+# 💼 WealthLet — Personal Finance Management Web App
 
-A new Flutter project.
+WealthLet is a powerful and intuitive personal finance management platform designed to help users track income, expenses, and savings efficiently. Built with a modern tech stack, this web application demonstrates practical skills in full-stack development, UI/UX design, and data handling — making it a standout portfolio project for developers aiming to showcase real-world problem solving.
 
-## Getting Started
+## 🚀 Live Demo
 
-This project is a starting point for a Flutter application.
+📸 Screenshots
 
-A few resources to get you started if this is your first Flutter project:
+<p float="left">
+  <img src="ScreenShots/DashboardMain.png" width="120" alt="Dashboard Overview" />
+  
+  <img src="ScreenShots/Opitions.png width="120" alt="Crypto Trading" /><npsp>
+  
+  <img src="ScreenShots/ElectricBoard.png width="120" alt="Money Transfer" />
+  
+  <img src="ScreenShots/Invest.png width="120" alt="Biometric Login" /><npsp>
+  
+  <img src="ScreenShots/Offers.png width="120" alt="Money Transfer" />
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+  <img src="ScreenShots/Opitions.png width="120" alt="Money Transfer" />
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+  <img src="ScreenShots/Savings.png width="120" alt="Money Transfer" />
+
+  <img src="ScreenShots/TravelDash.png width="120" alt="Money Transfer" />
+
+  <img src="ScreenShots/TravelWelcomScreen.png width="120" alt="Money Transfer" />
+
+  <img src="ScreenShots/electric.png width="120" alt="Money Transfer" />
+</p>
+
+---
+
+## 🧩 Key Features
+
+- 🔐 **User Authentication** – Secure sign-up & login with session management
+- 💰 **Expense & Income Tracking** – Add, update, and delete financial transactions
+- 📊 **Analytics Dashboard** – Visual insights via graphs and summaries
+- 📂 **Categorization** – Organize finances by custom tags or categories
+- 📆 **Date-wise Filtering** – View spending trends over time
+- 🌙 **Dark Mode** – Responsive and modern UI with theme toggle
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React.js**
+- **Tailwind CSS**
+- **Context API / Redux (if used)**
+
+### Backend
+- **Node.js**
+- **Express.js**
+- **MongoDB (Mongoose)**
+
+### Tools & Utilities
+- **JWT Authentication**
+- **Axios**
+- **Chart.js / Recharts (for graphs)**
+- **Vercel / Netlify / Render (for deployment)**
+
+---
+
+## 📁 Folder Structure (Example)
