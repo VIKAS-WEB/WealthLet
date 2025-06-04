@@ -38,7 +38,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         final data = doc.data() as Map<String, dynamic>?;
         emit(ProfilePictureLoaded(
           profilePicUrl: data?['ProfilePic'] as String?,
-          isImageLoading: data?['ProfilePic'] != null,
+          isImageLoading: false, // Set to false as image URL is fetched
           name: data?['username'] as String? ?? 'Unknown',
           email: data?['email'] as String? ?? 'No email',
           phoneNumber: data?['phoneNumber'] as String?,
@@ -89,7 +89,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         final data = doc.data() as Map<String, dynamic>?;
         emit(ProfilePictureLoaded(
           profilePicUrl: imageUrl,
-          isImageLoading: true,
+          isImageLoading: false, // Set to false as image is uploaded
           name: data?['username'] as String? ?? 'Unknown',
           email: data?['email'] as String? ?? 'No email',
           phoneNumber: data?['phoneNumber'] as String?,
@@ -154,7 +154,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final data = doc.data() as Map<String, dynamic>?;
       emit(ProfilePictureLoaded(
         profilePicUrl: data?['ProfilePic'] as String?,
-        isImageLoading: data?['ProfilePic'] != null,
+        isImageLoading: false,
         name: data?['username'] as String? ?? 'Unknown',
         email: data?['email'] as String? ?? 'No email',
         phoneNumber: event.phoneNumber,
@@ -185,7 +185,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final data = doc.data() as Map<String, dynamic>?;
       emit(ProfilePictureLoaded(
         profilePicUrl: data?['ProfilePic'] as String?,
-        isImageLoading: data?['ProfilePic'] != null,
+        isImageLoading: false,
         name: data?['username'] as String? ?? 'Unknown',
         email: event.email,
         phoneNumber: data?['phoneNumber'] as String?,
@@ -216,7 +216,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final data = doc.data() as Map<String, dynamic>?;
       emit(ProfilePictureLoaded(
         profilePicUrl: data?['ProfilePic'] as String?,
-        isImageLoading: data?['ProfilePic'] != null,
+        isImageLoading: false,
         name: data?['username'] as String? ?? 'Unknown',
         email: data?['email'] as String? ?? 'No email',
         phoneNumber: data?['phoneNumber'] as String?,

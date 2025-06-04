@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:wealthlet/features/Home/Presentation/Screens/Dashboard.dart';
 
@@ -40,23 +41,29 @@ class _BottomNavBarState extends State<BottomNavBar> {
             label: 'Card',
           ),
           BottomNavigationBarItem(
-            icon: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFFF5733),
+            icon: InkWell(
+              onTap: (){
+                Navigator.push(context, CupertinoPageRoute(
+                  builder: (context) => QRScannerScreen(),));
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFFF5733),
+                    ),
                   ),
-                ),
-                Icon(
-                  Icons.qr_code,
-                  color: Colors.white,
-                  size: 30, // Adjusted size for better visibility
-                ),
-              ],
+                  Icon(
+                    Icons.qr_code,
+                    color: Colors.white,
+                    size: 30, // Adjusted size for better visibility
+                  ),
+                ],
+              ),
             ),
             label: '',
           ),
