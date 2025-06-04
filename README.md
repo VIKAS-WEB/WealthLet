@@ -6,27 +6,20 @@ WealthLet is a powerful and intuitive personal finance management platform desig
 
 📸 Screenshots
 
-<p float="left">
+## 📸 Screenshots
+
+<div style="display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 10px;">
   <img src="ScreenShots/DashboardMain.png" width="120" alt="Dashboard Overview" />
-  
-  <img src="ScreenShots/Opitions.png" width="120" alt="Crypto Trading" /><npsp>
-  
+  <img src="ScreenShots/Opitions.png" width="120" alt="Crypto Trading" />
   <img src="ScreenShots/ElectricBoard.png" width="120" alt="Money Transfer" />
-  
-  <img src="ScreenShots/Invest.png" width="120" alt="Biometric Login" /><npsp>
-  
+  <img src="ScreenShots/Invest.png" width="120" alt="Biometric Login" />
   <img src="ScreenShots/Offers.png" width="120" alt="Money Transfer" />
-
   <img src="ScreenShots/Opitions.png" width="120" alt="Money Transfer" />
-
   <img src="ScreenShots/Savings.png" width="120" alt="Money Transfer" />
-
   <img src="ScreenShots/TravelDash.png" width="120" alt="Money Transfer" />
-
   <img src="ScreenShots/TravelWelcomScreen.png" width="120" alt="Money Transfer" />
-
   <img src="ScreenShots/electric.png" width="120" alt="Money Transfer" />
-</p>
+</div>
 
 ---
 
