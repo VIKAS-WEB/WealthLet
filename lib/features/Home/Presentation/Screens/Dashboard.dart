@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wealthlet/core/utils/Colorfields.dart';
@@ -24,8 +24,13 @@ import 'package:wealthlet/features/Payments/Presentation/Screens/ElectricityPaym
 import 'package:wealthlet/features/Payments/Presentation/Screens/InstantTransfer.dart';
 import 'package:wealthlet/features/Payments/Presentation/Screens/InternalTransfer.dart';
 import 'package:wealthlet/features/Payments/Presentation/Screens/WalletScreens.dart';
+import 'package:wealthlet/features/Payments/Presentation/Widgets/balance_display.dart';
 import 'package:wealthlet/features/Profile/Presentation/Screens/profile.dart';
 import 'package:wealthlet/features/Travel/Presentation/Screens/TravelWelcomeScreen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wealthlet/features/Payments/Bloc/InternalTransferBloc/internal_transfer_bloc.dart';
+import 'package:wealthlet/features/Payments/Bloc/InternalTransferBloc/internal_transfer_event.dart';
+import 'package:wealthlet/features/Payments/Bloc/InternalTransferBloc/internal_transfer_state.dart';
 
 class Dashboard extends StatefulWidget {
   @override
@@ -75,16 +80,16 @@ class _DashboardState extends State<Dashboard> {
       'icon': Icons.account_balance_wallet_outlined,
       'screen': MyWalletScreen(),
     },
-    {
-      'label': 'Scan QR',
-      'icon': Icons.qr_code_scanner,
-      'action': 'scanQR',
-    },
+    {'label': 'Scan QR', 'icon': Icons.qr_code_scanner, 'action': 'scanQR'},
   ];
 
   final List<Map<String, dynamic>> UtilityBiilsOptions = [
     {'label': 'MyFavourite', 'icon': Icons.star},
-    {'label': 'Electricity', 'icon': Icons.power, 'screen': ElectricityBoardScreen()},
+    {
+      'label': 'Electricity',
+      'icon': Icons.power,
+      'screen': ElectricityBoardScreen(),
+    },
     {'label': 'Gas', 'icon': Icons.gas_meter},
     {'label': 'Water', 'icon': Icons.water_drop},
     {'label': 'Internet', 'icon': Icons.network_wifi_3_bar_rounded},
@@ -99,7 +104,8 @@ class _DashboardState extends State<Dashboard> {
   ];
 
   int _currentIndex = 0;
-  final CarouselSliderController _carouselController = CarouselSliderController();
+  final CarouselSliderController _carouselController =
+      CarouselSliderController();
   bool _imagesPrecached = false;
   String? _userName;
   bool _isLoading = true;
@@ -120,10 +126,11 @@ class _DashboardState extends State<Dashboard> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
 
       if (userDoc.exists && userDoc.data()?['ProfilePic'] != null) {
         setState(() {
@@ -146,10 +153,11 @@ class _DashboardState extends State<Dashboard> {
         return;
       }
 
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
 
       if (userDoc.exists) {
         setState(() {
@@ -170,64 +178,69 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  Future<void> _handleRefresh() async {
+  Future<void> _handleRefresh(BuildContext context) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _userName = null;
+      _profilePicUrl = null;
     });
-    await _fetchUserName();
-    await _fetchProfilePic();
+
+    await Future.wait([_fetchUserName(), _fetchProfilePic()]);
+
+    context.read<InternalTransferBloc>().add(FetchAccountsEvent());
+
+    await Future.delayed(Duration(milliseconds: 500));
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
-Future<void> _handleLogout() async {
-  bool? confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Confirm Logout'),
-      content: Text('Are you sure you want to log out?'),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(
-            'No',
-            style: TextStyle(color: ColorsField.buttonRed),
+  Future<void> _handleLogout() async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Confirm Logout'),
+            content: Text('Are you sure you want to log out?'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'No',
+                  style: TextStyle(color: ColorsField.buttonRed),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Yes', style: TextStyle(color: Color(0xFF2A5C54))),
+              ),
+            ],
           ),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: Text('Yes', style: TextStyle(color: Color(0xFF2A5C54))),
-        ),
-      ],
-    ),
-  );
+    );
 
-  if (confirm == true) {
-    try {
-      // Firebase logout
-      await FirebaseAuth.instance.signOut();
-
-      // SharedPreferences logout flag
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', false);
-
-      // Navigate to LoginScreen & clear stack
-      Navigator.pushAndRemoveUntil(
-        context,
-        CupertinoPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false,
-      );
-    } catch (e) {
-      print("❌ Error logging out: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
-      );
+    if (confirm == true) {
+      try {
+        await FirebaseAuth.instance.signOut();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', false);
+        Navigator.pushAndRemoveUntil(
+          context,
+          CupertinoPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      } catch (e) {
+        print("❌ Error logging out: $e");
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
+      }
     }
   }
-}
-
 
   void _scanQRCode() async {
     Navigator.pop(context);
@@ -273,63 +286,64 @@ Future<void> _handleLogout() async {
                 mainAxisSpacing: 30,
                 childAspectRatio: 0.8,
                 physics: NeverScrollableScrollPhysics(),
-                children: transferOptions.map((option) {
-                  return GestureDetector(
-                    onTap: () {
-                      if (option['action'] == 'scanQR') {
-                        _scanQRCode();
-                      } else if (option['screen'] != null) {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => option['screen'],
-                          ),
-                        );
-                      } else {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${option['label']} selected'),
-                          ),
-                        );
-                      }
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 55,
-                          height: 55,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset: Offset(0, 2),
+                children:
+                    transferOptions.map((option) {
+                      return GestureDetector(
+                        onTap: () {
+                          if (option['action'] == 'scanQR') {
+                            _scanQRCode();
+                          } else if (option['screen'] != null) {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => option['screen'],
                               ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Icon(
-                              option['icon'],
-                              size: 30,
-                              color: ColorsField.buttonRed,
+                            );
+                          } else {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${option['label']} selected'),
+                              ),
+                            );
+                          }
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 55,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  option['icon'],
+                                  size: 30,
+                                  color: ColorsField.buttonRed,
+                                ),
+                              ),
                             ),
-                          ),
+                            SizedBox(height: 5),
+                            Text(
+                              option['label'],
+                              style: TextStyle(fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 5),
-                        Text(
-                          option['label'],
-                          style: TextStyle(fontSize: 14),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               SizedBox(height: 16),
             ],
@@ -375,61 +389,62 @@ Future<void> _handleLogout() async {
                 mainAxisSpacing: 30,
                 childAspectRatio: 0.8,
                 physics: NeverScrollableScrollPhysics(),
-                children: UtilityBiilsOptions.map((option) {
-                  return GestureDetector(
-                    onTap: () {
-                      if (option['screen'] != null) {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => option['screen'],
-                          ),
-                        );
-                      } else {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => ElectricityBoardScreen(),
-                          ),
-                        );
-                      }
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset: Offset(0, 2),
+                children:
+                    UtilityBiilsOptions.map((option) {
+                      return GestureDetector(
+                        onTap: () {
+                          if (option['screen'] != null) {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => option['screen'],
                               ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Icon(
-                              option['icon'],
-                              size: 35,
-                              color: ColorsField.buttonRed,
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (context) => ElectricityBoardScreen(),
+                              ),
+                            );
+                          }
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  option['icon'],
+                                  size: 35,
+                                  color: ColorsField.buttonRed,
+                                ),
+                              ),
                             ),
-                          ),
+                            SizedBox(height: 8),
+                            Text(
+                              option['label'],
+                              style: TextStyle(fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 8),
-                        Text(
-                          option['label'],
-                          style: TextStyle(fontSize: 14),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               SizedBox(height: 16),
             ],
@@ -481,52 +496,53 @@ Future<void> _handleLogout() async {
                 mainAxisSpacing: 20,
                 childAspectRatio: 0.8,
                 physics: NeverScrollableScrollPhysics(),
-                children: paymentOptions.map((option) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${option['label']} selected'),
+                children:
+                    paymentOptions.map((option) {
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${option['label']} selected'),
+                            ),
+                          );
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  option['icon'],
+                                  size: 35,
+                                  color: ColorsField.buttonRed,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              option['label'],
+                              style: TextStyle(fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
                       );
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Icon(
-                              option['icon'],
-                              size: 35,
-                              color: ColorsField.buttonRed,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          option['label'],
-                          style: TextStyle(fontSize: 14),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                    }).toList(),
               ),
               SizedBox(height: 16),
             ],
@@ -548,496 +564,781 @@ Future<void> _handleLogout() async {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: _buildDrawer(),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _handleRefresh,
-          color: Color(0xFFFF5733),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
+  Widget _buildSkeletonLoader() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Container(width: 35, height: 35, color: Colors.white),
+                  Spacer(),
+                  Row(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: GestureDetector(
-                          onTap: () {
-                            _scaffoldKey.currentState?.openDrawer();
-                          },
-                          child: Icon(Icons.menu, size: 35),
+                      Container(width: 28, height: 28, color: Colors.white),
+                      SizedBox(width: 25),
+                      Container(width: 28, height: 28, color: Colors.white),
+                      SizedBox(width: 25),
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
                         ),
                       ),
-                      Spacer(),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(height: 30),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Container(
+                          width: 250,
+                          height: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 20),
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                ],
+              ),
+            ),
+            SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GridView.count(
+                crossAxisCount: 4,
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                children: List.generate(4, (index) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Container(width: 40, height: 12, color: Colors.white),
+                    ],
+                  );
+                }),
+              ),
+            ),
+            SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute<void>(
-                                  builder: (context) => Notifications(),
-                                ),
-                              );
-                            },
-                            child: Icon(
-                              Icons.notifications,
-                              color: ColorsField.buttonRed,
-                              size: 28,
-                            ),
-                          ),
-                          SizedBox(width: 25),
-                          GestureDetector(
-                            onTap: _handleLogout,
-                            child: Icon(
-                              Icons.logout,
-                              color: ColorsField.buttonRed,
-                              size: 28,
-                            ),
-                          ),
-                          SizedBox(width: 25),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute<void>(
-                                  builder: (context) => ProfilePage(),
-                                ),
-                              );
-                            },
-                            child: CircleAvatar(
-                              radius: 26,
-                              backgroundColor: Colors.grey[300],
-                              backgroundImage: _profilePicUrl != null
-                                  ? NetworkImage(_profilePicUrl!)
-                                  : null,
-                              child: _profilePicUrl == null
-                                  ? Icon(Icons.person, color: Colors.white)
-                                  : null,
-                            ),
-                          ),
+                          Container(width: 80, height: 16, color: Colors.white),
+                          Container(width: 40, height: 14, color: Colors.white),
                         ],
+                      ),
+                      SizedBox(height: 10),
+                      GridView.count(
+                        crossAxisCount: 4,
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 0.8,
+                        children: List.generate(8, (index) {
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Container(
+                                width: 40,
+                                height: 12,
+                                color: Colors.white,
+                              ),
+                            ],
+                          );
+                        }),
                       ),
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 10),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Row(
-                          children: [
-                            _isLoading
-                                ? SpinKitThreeBounce(
-                                    color: ColorsField.buttonRed,
-                                    size: 30,
-                                  )
-                                : Row(
+              ),
+            ),
+            SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create:
+          (context) =>
+              InternalTransferBloc(FlutterLocalNotificationsPlugin())
+                ..add(FetchAccountsEvent()),
+      child: Builder(
+        builder:
+            (newContext) => Scaffold(
+              key: _scaffoldKey,
+              drawer: _buildDrawer(),
+              body:
+                  _isLoading
+                      ? _buildSkeletonLoader()
+                      : SafeArea(
+                        child: RefreshIndicator(
+                          onRefresh: () => _handleRefresh(newContext),
+                          color: Color(0xFFFF5733),
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'Welcome,',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 15,
+                                        ),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _scaffoldKey.currentState
+                                                ?.openDrawer();
+                                          },
+                                          child: Icon(Icons.menu, size: 35),
                                         ),
                                       ),
-                                      SizedBox(width: 10),
-                                      _errorMessage != null
-                                          ? Text(
-                                              _errorMessage!,
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.red,
-                                              ),
-                                            )
-                                          : Text(
-                                              _userName ?? 'Guest',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                      Spacer(),
+                                      Row(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                CupertinoPageRoute<void>(
+                                                  builder:
+                                                      (context) =>
+                                                          Notifications(),
+                                                ),
+                                              );
+                                            },
+                                            child: Icon(
+                                              Icons.notifications,
+                                              color: ColorsField.buttonRed,
+                                              size: 28,
                                             ),
+                                          ),
+                                          SizedBox(width: 25),
+                                          GestureDetector(
+                                            onTap: _handleLogout,
+                                            child: Icon(
+                                              Icons.logout,
+                                              color: ColorsField.buttonRed,
+                                              size: 28,
+                                            ),
+                                          ),
+                                          SizedBox(width: 25),
+                                          GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                CupertinoPageRoute<void>(
+                                                  builder:
+                                                      (context) =>
+                                                          ProfilePage(),
+                                                ),
+                                              );
+                                            },
+                                            child: CircleAvatar(
+                                              radius: 26,
+                                              backgroundColor: Colors.grey[300],
+                                              backgroundImage:
+                                                  _profilePicUrl != null
+                                                      ? NetworkImage(
+                                                        _profilePicUrl!,
+                                                      )
+                                                      : null,
+                                              child:
+                                                  _profilePicUrl == null
+                                                      ? Icon(
+                                                        Icons.person,
+                                                        color: Colors.white,
+                                                      )
+                                                      : null,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      CarouselSlider(
-                        carouselController: _carouselController,
-                        options: CarouselOptions(
-                          height: 200.0,
-                          autoPlay: false,
-                          autoPlayInterval: Duration(seconds: 5),
-                          enlargeCenterPage: true,
-                          viewportFraction: 1.0,
-                          enableInfiniteScroll: false,
-                          onPageChanged: (index, reason) {
-                            setState(() {
-                              _currentIndex = index;
-                            });
-                          },
-                        ),
-                        items: cards.map((card) {
-                          return Builder(
-                            builder: (BuildContext context) {
-                              return Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Color(0xFF1E3A8A),
-                                        Color.fromARGB(255, 255, 255, 255),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      stops: [0.6, 0.4],
-                                    ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                  child: Column(
+                                    children: [
+                                      SizedBox(height: 10),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
+                                        child: Row(
                                           children: [
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Balance',
+                                            _errorMessage != null
+                                                ? Text(
+                                                  _errorMessage!,
                                                   style: TextStyle(
-                                                    color: Colors.white,
                                                     fontSize: 16,
-                                                    fontWeight: FontWeight.normal,
+                                                    color: Colors.red,
                                                   ),
-                                                ),
-                                                SizedBox(height: 8),
-                                                Row(
+                                                )
+                                                : Row(
                                                   children: [
                                                     Text(
-                                                      _isBalanceVisible
-                                                          ? '₹ 562554.29'
-                                                          : '••••••••••••',
+                                                      'Welcome,',
                                                       style: TextStyle(
-                                                        color: Colors.white,
                                                         fontSize: 20,
                                                         fontWeight:
                                                             FontWeight.bold,
                                                       ),
                                                     ),
-                                                    SizedBox(width: 8),
-                                                    GestureDetector(
-                                                      onTap: () {
-                                                        setState(() {
-                                                          _isBalanceVisible =
-                                                              !_isBalanceVisible;
-                                                        });
-                                                      },
-                                                      child: Icon(
-                                                        _isBalanceVisible
-                                                            ? Icons.visibility
-                                                            : Icons.visibility_off,
-                                                        color: Colors.white,
-                                                        size: 20,
+                                                    SizedBox(width: 10),
+                                                    Text(
+                                                      _userName ?? 'Guest',
+                                                      style: TextStyle(
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ],
                                                 ),
-                                              ],
-                                            ),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Account Number',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 8),
-                                                Text(
-                                                  '**** **** **** 6563',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
                                           ],
                                         ),
-                                        Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            Image.asset(
-                                              'assets/images/WealthLet.png',
-                                              height: 25,
-                                              alignment: Alignment.topLeft,
+                                      ),
+                                      SizedBox(height: 20),
+                                      CarouselSlider(
+                                        carouselController: _carouselController,
+                                        options: CarouselOptions(
+                                          height: 200.0,
+                                          autoPlay: false,
+                                          autoPlayInterval: Duration(
+                                            seconds: 5,
+                                          ),
+                                          enlargeCenterPage: true,
+                                          viewportFraction: 1.0,
+                                          enableInfiniteScroll: false,
+                                          onPageChanged: (index, reason) {
+                                            setState(() {
+                                              _currentIndex = index;
+                                            });
+                                          },
+                                        ),
+                                        items:
+                                            cards.map((card) {
+                                              return Builder(
+                                                builder: (
+                                                  BuildContext context,
+                                                ) {
+                                                  return Card(
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                    ),
+                                                    child: Container(
+                                                      decoration: BoxDecoration(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              16,
+                                                            ),
+                                                        gradient: LinearGradient(
+                                                          colors: [
+                                                            Color(0xFF1E3A8A),
+                                                            Color.fromARGB(
+                                                              255,
+                                                              255,
+                                                              255,
+                                                              255,
+                                                            ),
+                                                          ],
+                                                          begin:
+                                                              Alignment.topLeft,
+                                                          end:
+                                                              Alignment
+                                                                  .bottomRight,
+                                                          stops: [0.6, 0.4],
+                                                        ),
+                                                      ),
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets.all(
+                                                              16.0,
+                                                            ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
+                                                          children: [
+                                                            Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
+                                                              children: [
+                                                                Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Text(
+                                                                      'Balance',
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            Colors.white,
+                                                                        fontSize:
+                                                                            16,
+                                                                        fontWeight:
+                                                                            FontWeight.normal,
+                                                                      ),
+                                                                    ),
+                                                                    SizedBox(
+                                                                      height: 8,
+                                                                    ),
+                                                                    Row(
+                                                                      children: [
+                                                                        _isBalanceVisible
+                                                                            ? BalanceDisplay(
+                                                                              accountType:
+                                                                                  'source',
+                                                                              balanceTextStyle: TextStyle(
+                                                                                color:
+                                                                                    Colors.white,
+                                                                                fontSize:
+                                                                                    20,
+                                                                                fontWeight:
+                                                                                    FontWeight.bold,
+                                                                              ),
+                                                                              errorTextStyle: TextStyle(
+                                                                                color:
+                                                                                    Colors.red,
+                                                                                fontSize:
+                                                                                    16,
+                                                                              ),
+                                                                            )
+                                                                            : Text(
+                                                                              '••••••••••••',
+                                                                              style: TextStyle(
+                                                                                color:
+                                                                                    Colors.white,
+                                                                                fontSize:
+                                                                                    20,
+                                                                                fontWeight:
+                                                                                    FontWeight.bold,
+                                                                              ),
+                                                                            ),
+                                                                        SizedBox(
+                                                                          width:
+                                                                              8,
+                                                                        ),
+                                                                        GestureDetector(
+                                                                          onTap: () {
+                                                                            setState(() {
+                                                                              _isBalanceVisible =
+                                                                                  !_isBalanceVisible;
+                                                                            });
+                                                                          },
+                                                                          child: Icon(
+                                                                            _isBalanceVisible
+                                                                                ? Icons.visibility
+                                                                                : Icons.visibility_off,
+                                                                            color:
+                                                                                Colors.white,
+                                                                            size:
+                                                                                20,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Text(
+                                                                      'Account Number',
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            Colors.white,
+                                                                        fontSize:
+                                                                            15,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                      ),
+                                                                    ),
+                                                                    SizedBox(
+                                                                      height: 8,
+                                                                    ),
+                                                                    Text(
+                                                                      card['number']!,
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            Colors.white,
+                                                                        fontSize:
+                                                                            14,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            Column(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceEvenly,
+                                                              children: [
+                                                                Image.asset(
+                                                                  'assets/images/WealthLet.png',
+                                                                  height: 25,
+                                                                  alignment:
+                                                                      Alignment
+                                                                          .topLeft,
+                                                                ),
+                                                                SizedBox(
+                                                                  height: 20,
+                                                                ),
+                                                                Image.asset(
+                                                                  'assets/images/chip.png',
+                                                                  height: 35,
+                                                                  alignment:
+                                                                      Alignment
+                                                                          .bottomLeft,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            }).toList(),
+                                      ),
+                                      SizedBox(height: 8),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 30),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                  ),
+                                  child: GridView.count(
+                                    crossAxisCount: 4,
+                                    shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
+                                    crossAxisSpacing: 8,
+                                    mainAxisSpacing: 8,
+                                    children: [
+                                      _buildActionButton(
+                                        Icons.send,
+                                        'Transfer',
+                                        Color(0xFF2A5C54),
+                                        onTap: _showTransferDialog,
+                                      ),
+                                      _buildActionButton(
+                                        Icons.payment,
+                                        'Payment',
+                                        Color(0xFFFF5733),
+                                        onTap: _showPaymentDialog,
+                                      ),
+                                      _buildActionButton(
+                                        Icons.receipt,
+                                        'Pay Bill',
+                                        Color(0xFF4682B4),
+                                        onTap: _showUtilityBillsDialouge,
+                                      ),
+                                      _buildActionButton(
+                                        Icons.schedule,
+                                        'Scheduled',
+                                        Color(0xFF6A5ACD),
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            CupertinoPageRoute<void>(
+                                              builder:
+                                                  (context) =>
+                                                      ScheduledTransactionsScreen(),
                                             ),
-                                            SizedBox(height: 20),
-                                            Image.asset(
-                                              'assets/images/chip.png',
-                                              height: 35,
-                                              alignment: Alignment.bottomLeft,
-                                            ),
-                                          ],
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 16),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          spreadRadius: 2,
+                                          blurRadius: 5,
+                                          offset: Offset(0, 1),
                                         ),
                                       ],
                                     ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'MY SWIFTT',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFFFF5733),
+                                                ),
+                                              ),
+                                              Text(
+                                                'Edit',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Color(0xFF2A5C54),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 10),
+                                          GridView.count(
+                                            crossAxisCount: 4,
+                                            shrinkWrap: true,
+                                            physics:
+                                                NeverScrollableScrollPhysics(),
+                                            crossAxisSpacing: 8,
+                                            mainAxisSpacing: 8,
+                                            childAspectRatio: 0.8,
+                                            children: [
+                                              _buildActionButton(
+                                                Icons.savings,
+                                                'Savings',
+                                                Color(0xFF2A5C54),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute(
+                                                      builder:
+                                                          (context) =>
+                                                              SavingsScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              _buildActionButton(
+                                                Icons.local_offer,
+                                                'Offer',
+                                                Color(0xFFFF5733),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute(
+                                                      builder:
+                                                          (context) =>
+                                                              OfferScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              _buildActionButton(
+                                                Icons.schedule,
+                                                'Scheduled',
+                                                Color(0xFF4682B4),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute<void>(
+                                                      builder:
+                                                          (context) =>
+                                                              ScheduledTransactionsScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              _buildActionButton(
+                                                Icons.send,
+                                                'Remittance',
+                                                Color(0xFF6A5ACD),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute<void>(
+                                                      builder:
+                                                          (context) =>
+                                                              RemittanceScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 12),
+                                          GridView.count(
+                                            crossAxisCount: 4,
+                                            shrinkWrap: true,
+                                            physics:
+                                                NeverScrollableScrollPhysics(),
+                                            crossAxisSpacing: 8,
+                                            mainAxisSpacing: 8,
+                                            childAspectRatio: 0.8,
+                                            children: [
+                                              _buildActionButton(
+                                                Icons.arrow_upward,
+                                                'Topup',
+                                                Color(0xFF2A5C54),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute<void>(
+                                                      builder:
+                                                          (context) =>
+                                                              TopupScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              _buildActionButton(
+                                                Icons.trending_up,
+                                                'Invest',
+                                                Color(0xFFFF5733),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute<void>(
+                                                      builder:
+                                                          (context) =>
+                                                              InvestScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              _buildActionButton(
+                                                Icons.favorite,
+                                                'Donation',
+                                                Color(0xFF4682B4),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute<void>(
+                                                      builder:
+                                                          (context) =>
+                                                              DonationScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              _buildActionButton(
+                                                Icons.account_balance,
+                                                'Loan',
+                                                Color(0xFF6A5ACD),
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    CupertinoPageRoute<void>(
+                                                      builder:
+                                                          (context) =>
+                                                              LoanScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              );
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(height: 8),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 30),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: GridView.count(
-                    crossAxisCount: 4,
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    children: [
-                      _buildActionButton(
-                        Icons.send,
-                        'Transfer',
-                        Color(0xFF2A5C54),
-                        onTap: _showTransferDialog,
-                      ),
-                      _buildActionButton(
-                        Icons.payment,
-                        'Payment',
-                        Color(0xFFFF5733),
-                        onTap: _showPaymentDialog,
-                      ),
-                      _buildActionButton(
-                        Icons.receipt,
-                        'Pay Bill',
-                        Color(0xFF4682B4),
-                        onTap: _showUtilityBillsDialouge,
-                      ),
-                      _buildActionButton(
-                        Icons.schedule,
-                        'Scheduled',
-                        Color(0xFF6A5ACD),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            CupertinoPageRoute<void>(
-                              builder: (context) => ScheduledTransactionsScreen(),
+                                SizedBox(height: 16),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          spreadRadius: 2,
-                          blurRadius: 5,
-                          offset: Offset(0, 1),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'MY SWIFTT',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFF5733),
-                                ),
-                              ),
-                              Text(
-                                'Edit',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF2A5C54),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 10),
-                          GridView.count(
-                            crossAxisCount: 4,
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 0.8,
-                            children: [
-                              _buildActionButton(
-                                Icons.savings,
-                                'Savings',
-                                Color(0xFF2A5C54),
-                                onTap: () {
-                                  Navigator.push(context, CupertinoPageRoute(builder: (context) => SavingsScreen(),));
-                                },
-                              ),
-                              _buildActionButton(
-                                Icons.local_offer,
-                                'Offer',
-                                Color(0xFFFF5733),
-                                onTap: () {
-                                 Navigator.push(context, CupertinoPageRoute(builder: (context) => OfferScreen(),));
-                                },
-                              ),
-                              _buildActionButton(
-                                Icons.schedule,
-                                'Scheduled',
-                                Color(0xFF4682B4),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute<void>(
-                                      builder: (context) =>
-                                          ScheduledTransactionsScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              _buildActionButton(
-                                Icons.send,
-                                'Remittance',
-                                Color(0xFF6A5ACD),
-                                onTap: () {
-                                 Navigator.push(
-                                    context,
-                                    CupertinoPageRoute<void>(
-                                      builder: (context) =>
-                                          RemittanceScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 12),
-                          GridView.count(
-                            crossAxisCount: 4,
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 0.8,
-                            children: [
-                              _buildActionButton(
-                                Icons.arrow_upward,
-                                'Topup',
-                                Color(0xFF2A5C54),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute<void>(
-                                      builder: (context) =>
-                                          TopupScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              _buildActionButton(
-                                Icons.trending_up,
-                                'Invest',
-                                Color(0xFFFF5733),
-                                onTap: () {
-                                    Navigator.push(
-                                    context,
-                                    CupertinoPageRoute<void>(
-                                      builder: (context) =>
-                                          InvestScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              _buildActionButton(
-                                Icons.favorite,
-                                'Donation',
-                                Color(0xFF4682B4),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute<void>(
-                                      builder: (context) =>
-                                          DonationScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              _buildActionButton(
-                                Icons.account_balance,
-                                'Loan',
-                                Color(0xFF6A5ACD),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute<void>(
-                                      builder: (context) =>
-                                          LoanScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
                       ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-              ],
             ),
-          ),
-        ),
       ),
     );
   }
@@ -1055,12 +1356,14 @@ Future<void> _handleLogout() async {
                 CircleAvatar(
                   radius: 35,
                   backgroundColor: Colors.grey[300],
-                  backgroundImage: _profilePicUrl != null
-                      ? NetworkImage(_profilePicUrl!)
-                      : null,
-                  child: _profilePicUrl == null
-                      ? Icon(Icons.person, color: Colors.white, size: 40)
-                      : null,
+                  backgroundImage:
+                      _profilePicUrl != null
+                          ? NetworkImage(_profilePicUrl!)
+                          : null,
+                  child:
+                      _profilePicUrl == null
+                          ? Icon(Icons.person, color: Colors.white, size: 40)
+                          : null,
                 ),
                 SizedBox(height: 10),
                 Text(
@@ -1079,7 +1382,7 @@ Future<void> _handleLogout() async {
             ),
           ),
           ListTile(
-            leading: Icon(Icons.home, color: Color(0xFFFF5733)),
+            leading: Icon(Icons.network_wifi, color: Color(0xFFFF5733)),
             title: Text('Home'),
             onTap: () {
               Navigator.pop(context);
@@ -1089,10 +1392,9 @@ Future<void> _handleLogout() async {
             leading: Icon(Icons.person, color: Color(0xFFFF5733)),
             title: Text('Profile'),
             onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
+              Navigator.pop(
                 context,
-                CupertinoPageRoute<void>(builder: (context) => ProfilePage()),
+                CupertinoPageRoute(builder: (context) => ProfilePage()),
               );
             },
           ),
@@ -1219,8 +1521,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     Navigator.pop(context);
                     break;
                   }
-                }
-              }
+                } // Missing closing brace for the for loop
+              } // Closing brace for if
             },
           ),
           Align(
